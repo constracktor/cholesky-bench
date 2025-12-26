@@ -1,6 +1,8 @@
 #include "mkl.h"
 //#include "mkl_cblas.h"
 //#include "mkl_lapacke.h"
+// #include "cblas.h"
+// #include "lapacke.h"
 
 #include <vector>
 ////////////////////////////////////////////////////////////////////////////////
