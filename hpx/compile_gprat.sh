@@ -49,9 +49,9 @@ if command -v spack &> /dev/null; then
 	    GPRAT_WITH_CUDA=ON
 	fi
     elif [[ "$HOSTNAME" == "nasrin0" || "$HOSTNAME" == "nasrin1" ]]; then
-	module load gcc
-	spack load hpx@1.11.0%gcc arch=linux-almalinux9-zen3
-	spack load openblas%gcc@15.1.0
+	#module load gcc
+	spack load hpx@1.11.0%gcc@14.2.0 arch=linux-almalinux9-zen3
+	spack load openblas%gcc@14.2.0 arch=linux-almalinux9-zen3 threads=none
     else
     	echo "Hostname is $HOSTNAME — no action taken."
     fi
@@ -61,7 +61,8 @@ else
 fi
 rm -rf build && mkdir build && cd build
 
-cmake -DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
+cmake -DCMAKE_BUILD_TYPE=Release \
+	-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
 	-DENABLE_FORMAT_TARGETS=OFF \
         -DENABLE_MKL=OFF ..
 make -j

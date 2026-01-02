@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 {
     /////////////////////
     /////// configuration
-    std::size_t START = 1024;
+    std::size_t START = 256;
     std::size_t END = 65'536;
     std::size_t STEP = 2;
     std::size_t LOOP = 1;
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
             std::cout << "\n\nProblem size: " << size << std::endl;
             // Compute tile sizes and number of predict tiles
             std::size_t tile_size = size / n_tiles;
-            std::cout << "\n\nTile size: " << tile_size << std::endl;
+            std::cout << "Tile size: " << tile_size << std::endl;
 
             for (std::size_t l = 0; l < LOOP; l++)
             {
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
                     // std::cout << "cpu sync ref cholesky time: " << cholesky_sync_time.count() << std::endl;
                     //
                     start = std::chrono::high_resolution_clock::now();
-                    auto cholesky_cpu_sync = cpu::cholesky_synchronous("sync_val", 16, 512);
+                    auto cholesky_cpu_sync = cpu::cholesky_synchronous("sync_val", n_tiles, size);
                     end = std::chrono::high_resolution_clock::now();
                     cholesky_sync_time = end - start;
                     std::cout << "cpu sync val cholesky time: " << cholesky_sync_time.count() << std::endl;
