@@ -113,8 +113,16 @@ int main(int argc, char *argv[])
                 values += std::string(";") + std::to_string(size / n_tiles);
                 values += std::string(";") + std::to_string(n_tiles);
                 ///////////////////////////////////////////////////////////////////////////
-                std::vector<std::string> loop_modes = { "for_collapse", "for_split", "for_naive" };
-                for (const auto &mode : loop_modes)
+                std::vector<std::string> modes = {
+                    "for_collapse",
+                    "for_naive",
+
+                    "task_naive",
+                    "task_pointer",
+                    "task_ref"
+                };
+
+                for (const auto &mode : modes)
                 {
                     auto tiled_matrix = gen_tiled_matrix(size, n_tiles);
                     auto cholesky_cpu = cpu::cholesky(tiled_matrix, mode);

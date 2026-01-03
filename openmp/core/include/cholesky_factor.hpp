@@ -10,43 +10,30 @@ using Tiled_vector_matrix = std::vector<std::vector<double>>;
 
 namespace cpu
 {
-enum class Variant { for_collapse, for_split, for_naive, sync_future, sync_ref, sync_val, loop_one, loop_two };
+enum class Variant { for_collapse, for_naive, task_naive, task_pointer, task_ref };
 
-inline Variant to_variant(std::string s)
+inline Variant to_variant(const std::string &s)
 {
     if (s == "for_collapse")
     {
         return Variant::for_collapse;
-    }
-    if (s == "for_split")
-    {
-        return Variant::for_split;
     }
     if (s == "for_naive")
     {
         return Variant::for_naive;
     }
 
-    if (s == "sync_future")
+    if (s == "task_naive")
     {
-        return Variant::sync_future;
+        return Variant::task_naive;
     }
-    if (s == "sync_ref")
+    if (s == "task_pointer")
     {
-        return Variant::sync_ref;
+        return Variant::task_pointer;
     }
-    if (s == "sync_val")
+    if (s == "task_ref")
     {
-        return Variant::sync_val;
-    }
-
-    if (s == "loop_one")
-    {
-        return Variant::loop_one;
-    }
-    if (s == "loop_two")
-    {
-        return Variant::loop_two;
+        return Variant::task_ref;
     }
 
     throw std::invalid_argument("Unknown Variant: " + std::string(s));
