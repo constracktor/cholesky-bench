@@ -1,4 +1,5 @@
 #include "functions.hpp"
+//#include "tile_generation.hpp"
 #include <hpx/hpx_main.hpp>
 #include <iostream>
 #include <vector>
@@ -45,12 +46,8 @@ int main(int argc, char *argv[])
     std::size_t STEP = 2;
     std::size_t LOOP = 1;
 
-    int n_test = 1024;
     const std::size_t N_CORES = 128;
-    const std::size_t n_tiles = 32;
-    const std::size_t n_reg = 8;
-
-    std::string train_path = "../../../data/data_19/training_input_19.txt";
+    const std::size_t n_tiles = 64;
 
     for (std::size_t core = 128; core <= N_CORES; core = core * 2)
     {
@@ -63,86 +60,45 @@ int main(int argc, char *argv[])
 
             for (std::size_t l = 0; l < LOOP; l++)
             {
+                // async
+                auto mut_tiled_matrix = gen_mutable_tiled_matrix(size, n_tiles);
+                auto cholesky_cpu = cpu::cholesky_mutable(mut_tiled_matrix);
+                std::cout << "cpu mut future: " << cholesky_cpu << std::endl;
 
+                // async
+                auto f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
+                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "async_future");
+                std::cout << "cpu async future: " << cholesky_cpu << std::endl;
 
-                std::chrono::duration<double> cholesky_async_time;
-                std::chrono::duration<double> cholesky_sync_time;
-                std::chrono::duration<double> cholesky_ref_time;
-                std::chrono::duration<double> cholesky_val_time;
-                std::chrono::duration<double> cholesky_mut_time;
+                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
+                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "async_ref");
+                std::cout << "cpu async ref: " << cholesky_cpu << std::endl;
 
-                std::string target;
+                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
+                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "async_val");
+                std::cout << "cpu async val: " << cholesky_cpu << std::endl;
 
-                auto start = std::chrono::high_resolution_clock::now();
-                auto end = std::chrono::high_resolution_clock::now();
+                // sync
+                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
+                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "sync_future");
+                std::cout << "cpu sync future: " << cholesky_cpu << std::endl;
 
-                    /////////////////////
-                    ///// GP
+                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
+                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "sync_ref");
+                std::cout << "cpu sync ref: " << cholesky_cpu << std::endl;
 
-                    // start = std::chrono::high_resolution_clock::now();
-                    // std::vector<std::vector<double>> cholesky_cpu_async = gp_cpu.cholesky_async("async_future");
-                    // end = std::chrono::high_resolution_clock::now();
-                    // cholesky_async_time = end - start;
-                    // std::cout << "cpu async future cholesky time: " << cholesky_async_time.count() << std::endl;
-                    //
-                    // start = std::chrono::high_resolution_clock::now();
-                    // cholesky_cpu_async = gp_cpu.cholesky_async("async_ref");
-                    // end = std::chrono::high_resolution_clock::now();
-                    // cholesky_async_time = end - start;
-                    // std::cout << "cpu async ref cholesky time: " << cholesky_async_time.count() << std::endl;
-                    //
-                    // start = std::chrono::high_resolution_clock::now();
-                    // cholesky_cpu_async = gp_cpu.cholesky_async("async_val");
-                    // end = std::chrono::high_resolution_clock::now();
-                    // cholesky_async_time = end - start;
-                    // std::cout << "cpu async val cholesky time: " << cholesky_async_time.count() << std::endl;
+                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
+                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "sync_val");
+                std::cout << "cpu sync val: " << cholesky_cpu << std::endl;
 
-                    ////
-
-                    // start = std::chrono::high_resolution_clock::now();
-                    // std::vector<std::vector<double>> cholesky_cpu_sync = gp_cpu.cholesky_sync("sync_future");
-                    // end = std::chrono::high_resolution_clock::now();
-                    // cholesky_sync_time = end - start;
-                    // std::cout << "cpu sync future cholesky time: " << cholesky_sync_time.count() << std::endl;
-                    //
-                    // start = std::chrono::high_resolution_clock::now();
-                    // cholesky_cpu_sync = gp_cpu.cholesky_sync("sync_ref");
-                    // end = std::chrono::high_resolution_clock::now();
-                    // cholesky_sync_time = end - start;
-                    // std::cout << "cpu sync ref cholesky time: " << cholesky_sync_time.count() << std::endl;
-                    //
-                    start = std::chrono::high_resolution_clock::now();
-                    auto cholesky_cpu_sync = cpu::cholesky_synchronous("sync_val", n_tiles, size);
-                    end = std::chrono::high_resolution_clock::now();
-                    cholesky_sync_time = end - start;
-                    std::cout << "cpu sync val cholesky time: " << cholesky_sync_time.count() << std::endl;
-
-                    ////
-
-                    start = std::chrono::high_resolution_clock::now();
-                    //std::vector<std::vector<double>> cholesky_cpu_ref = cpu::cholesky_loop("loop_two", 2, size);
-                    end = std::chrono::high_resolution_clock::now();
-                    cholesky_ref_time = end - start;
-                    std::cout << "cpu ref cholesky time: " << cholesky_ref_time.count() << std::endl;
-
-                    // start = std::chrono::high_resolution_clock::now();
-                    // std::vector<std::vector<double>> cholesky_cpu_val = cpu::cholesky_loop("loop_two");
-                    // end = std::chrono::high_resolution_clock::now();
-                    // cholesky_val_time = end - start;
-                    // std::cout << "cpu val cholesky time: " << cholesky_val_time.count() << std::endl;
-
-                    // start = std::chrono::high_resolution_clock::now();
-                    // std::vector<std::vector<double>> cholesky_cpu_mut = gp_cpu.cholesky_mutable();
-                    // end = std::chrono::high_resolution_clock::now();
-                    // cholesky_mut_time = end - start;
-                    // std::cout << "cpu mut cholesky time: " << cholesky_mut_time.count() << std::endl;
-                    // bool ok_sync = are_identical(cholesky_cpu_async, cholesky_cpu_sync);
-                    // bool ok_ref = are_identical(cholesky_cpu_async, cholesky_cpu_ref);
-                    // bool ok_val = are_identical(cholesky_cpu_async, cholesky_cpu_val);
-                    // if (ok_sync && ok_ref && ok_val)
-                    //     std::cout << "Cholesky results are IDENTICAL (within tolerance)\n";
-                    // else
-                    //       std::cout << "Cholesky results differ!\n";
+                // // loop
+                // auto tiled_matrix = gen_tiled_matrix(size, n_tiles);
+                // cholesky_cpu = cpu::cholesky_loop(tiled_matrix, "loop_one");
+                // std::cout << "cpu loop one: " << cholesky_cpu << std::endl;
+                //
+                // tiled_matrix = gen_tiled_matrix(size, n_tiles);
+                // cholesky_cpu = cpu::cholesky_loop(tiled_matrix, "loop_two");
+                // std::cout << "cpu loop two: " << cholesky_cpu << std::endl;
             }
         }
     }

@@ -2,7 +2,6 @@
 
 #include "adapter_cblas_fp64.hpp"
 #include <hpx/algorithm.hpp>
-//#include <hpx/parallel/algorithm.hpp>
 #include <hpx/functional.hpp>
 #include <hpx/future.hpp>
 
@@ -10,8 +9,12 @@ namespace cpu
 {
 
 // Tiled Cholesky Algorithm
-void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles, int N, std::size_t n_tiles)
+void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles)
 {
+    // Parameters
+    int N = std::sqrt(ft_tiles[0].get().size());
+    std::size_t n_tiles =  std::sqrt(ft_tiles.size());
+    // Variants
     switch (variant)
     {
             // Asynchronous variants
@@ -340,8 +343,12 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles, int N
 }
 
 void right_looking_cholesky_tiled_loop(
-    Variant variant, std::vector<std::vector<double>> &tiles, int N, std::size_t n_tiles)
+    Variant variant, std::vector<std::vector<double>> &tiles)
 {
+    // Parameters
+    int N = std::sqrt(tiles[0].size());
+    std::size_t n_tiles =  std::sqrt(tiles.size());
+    // Variants
     switch (variant)
     {
         case Variant::loop_one:
@@ -446,8 +453,12 @@ void right_looking_cholesky_tiled_loop(
     }
 }
 
-void right_looking_cholesky_tiled_mutable(Mutable_tiled_matrix &ft_tiles, int N, std::size_t n_tiles)
+void right_looking_cholesky_tiled_mutable(Mutable_tiled_matrix &ft_tiles)
 {
+    // Parameters
+    int N = std::sqrt(ft_tiles[0].get().size());
+    std::size_t n_tiles =  std::sqrt(ft_tiles.size());
+
     for (std::size_t k = 0; k < n_tiles; k++)
     {
         // POTRF: Compute Cholesky factor L

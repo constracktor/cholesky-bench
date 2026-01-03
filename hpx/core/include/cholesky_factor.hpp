@@ -51,30 +51,12 @@ inline Variant to_variant(std::string s)
     throw std::invalid_argument("Unknown Variant: " + std::string(s));
 }
 
-// Tiled Cholesky Algorithm
+void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles);
 
-/**
- * @brief Perform dataflow based right-looking tiled Cholesky decomposition.
- *
- * @param ft_tiles Tiled matrix represented as a vector of futurized tiles, containing the
- *        covariance matrix, afterwards the Cholesky decomposition.
- * @param N Tile size per dimension.
- * @param n_tiles Number of tiles per dimension.
- */
-void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles, int N, std::size_t n_tiles);
-
-/**
- * @brief Performs future-free right-looking tiled Cholesky decomposition.
- *
- * @param ft_tiles Tiled matrix represented as a vector oftiles, containing the
- *        covariance matrix, afterwards the Cholesky decomposition.
- * @param N Tile size per dimension.
- * @param n_tiles Number of tiles per dimension.
- */
 void right_looking_cholesky_tiled_loop(
-    Variant variant, std::vector<std::vector<double>> &tiles, int N, std::size_t n_tiles);
+    Variant variant, std::vector<std::vector<double>> &tiles);
 
-void right_looking_cholesky_tiled_mutable(Mutable_tiled_matrix &ft_tiles, int N, std::size_t n_tiles);
+void right_looking_cholesky_tiled_mutable(Mutable_tiled_matrix &ft_tiles);
 
 }  // end of namespace cpu
 #endif  // end of CPU_CHOLESKY_FACTOR_H
