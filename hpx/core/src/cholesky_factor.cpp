@@ -9,7 +9,7 @@ namespace cpu
 {
 
 // Tiled Cholesky Algorithm
-void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles)
+void right_looking_cholesky_tiled(Variant variant, Tiled_future_matrix &ft_tiles)
 {
     // Parameters
     int N = std::sqrt(ft_tiles[0].get().size());
@@ -343,7 +343,7 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles)
 }
 
 void right_looking_cholesky_tiled_loop(
-    Variant variant, std::vector<std::vector<double>> &tiles)
+    Variant variant, Tiled_vector_matrix &tiles)
 {
     // Parameters
     int N = std::sqrt(tiles[0].size());
@@ -453,7 +453,7 @@ void right_looking_cholesky_tiled_loop(
     }
 }
 
-void right_looking_cholesky_tiled_mutable(Mutable_tiled_matrix &ft_tiles)
+void right_looking_cholesky_tiled_mutable(Tiled_mutable_matrix &ft_tiles)
 {
     // Parameters
     int N = std::sqrt(ft_tiles[0].get().size());

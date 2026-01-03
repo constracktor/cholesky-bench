@@ -4,8 +4,9 @@
 #include "tile_data.hpp"
 #include <hpx/future.hpp>
 
-using Tiled_matrix = std::vector<hpx::shared_future<std::vector<double>>>;
-using Mutable_tiled_matrix = std::vector<hpx::shared_future<mutable_tile_data<double>>>;
+using Tiled_vector_matrix = std::vector<std::vector<double>>;
+using Tiled_future_matrix = std::vector<hpx::shared_future<std::vector<double>>>;
+using Tiled_mutable_matrix = std::vector<hpx::shared_future<mutable_tile_data<double>>>;
 
 namespace cpu
 {
@@ -51,12 +52,12 @@ inline Variant to_variant(std::string s)
     throw std::invalid_argument("Unknown Variant: " + std::string(s));
 }
 
-void right_looking_cholesky_tiled(Variant variant, Tiled_matrix &ft_tiles);
+void right_looking_cholesky_tiled(Variant variant, Tiled_future_matrix &ft_tiles);
 
 void right_looking_cholesky_tiled_loop(
-    Variant variant, std::vector<std::vector<double>> &tiles);
+    Variant variant, Tiled_vector_matrix &tiles);
 
-void right_looking_cholesky_tiled_mutable(Mutable_tiled_matrix &ft_tiles);
+void right_looking_cholesky_tiled_mutable(Tiled_mutable_matrix &ft_tiles);
 
 }  // end of namespace cpu
 #endif  // end of CPU_CHOLESKY_FACTOR_H

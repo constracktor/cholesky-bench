@@ -9,18 +9,22 @@
 #include <string>
 #include <vector>
 #include <hpx/future.hpp>
-using Tiled_matrix = std::vector<hpx::shared_future<std::vector<double>>>;
+
+using Tiled_vector_matrix = std::vector<std::vector<double>>;
+using Tiled_future_matrix = std::vector<hpx::shared_future<std::vector<double>>>;
+using Tiled_mutable_matrix = std::vector<hpx::shared_future<mutable_tile_data<double>>>;
+
 namespace cpu
 {
 
 double cholesky_future(
-    Tiled_matrix &tiled_matrix,
+    Tiled_future_matrix &tiled_matrix,
     std::string variant);
 
 double cholesky_loop(
-        std::vector<std::vector<double>> &tiled_matrix, std::string variant);
+        Tiled_vector_matrix &tiled_matrix, std::string variant);
 
-double cholesky_mutable(std::vector<hpx::shared_future<mutable_tile_data<double>>> &mutable_tiled_matrix);
+double cholesky_mutable(Tiled_mutable_matrix &mutable_tiled_matrix);
 
 }  // namespace cpu
 #endif  // end of CPU_FUNCTIONS_H

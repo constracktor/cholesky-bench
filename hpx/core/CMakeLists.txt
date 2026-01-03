@@ -1,4 +1,5 @@
 set(SOURCE_FILES
+    src/tile_generation.cpp
     src/tile_data.cpp
     src/functions.cpp
     src/cholesky_factor.cpp

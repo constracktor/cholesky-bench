@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     std::size_t LOOP = 1;
 
     const std::size_t N_CORES = 128;
-    const std::size_t n_tiles = 64;
+    const std::size_t n_tiles = 32;
 
     for (std::size_t core = 128; core <= N_CORES; core = core * 2)
     {

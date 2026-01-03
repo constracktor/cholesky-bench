@@ -1,5 +1,6 @@
 #ifndef CPU_ADAPTER_CBLAS_FP64_H
 #define CPU_ADAPTER_CBLAS_FP64_H
+
 #include "tile_data.hpp"
 #include <hpx/future.hpp>
 #include <vector>
@@ -10,18 +11,11 @@ using mutable_tile = mutable_tile_data<double>;
 using const_tile = const_tile_data<double>;
 
 // Constants that are compatible with CBLAS
-
 typedef enum BLAS_TRANSPOSE { Blas_no_trans = 111, Blas_trans = 112 } BLAS_TRANSPOSE;
 
 typedef enum BLAS_SIDE { Blas_left = 141, Blas_right = 142 } BLAS_SIDE;
 
 typedef enum BLAS_ALPHA { Blas_add = 1, Blas_substract = -1 } BLAS_ALPHA;
-
-// typedef enum BLAS_UPLO { Blas_upper = 121,
-//                          Blas_lower = 122 } BLAS_UPLO;
-
-// typedef enum BLAS_ORDERING { Blas_row_major = 101,
-//                              Blas_col_major = 102 } BLAS_ORDERING;
 
 // BLAS level 3 operations
 
