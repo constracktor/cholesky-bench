@@ -1,58 +1,74 @@
 #include "functions.hpp"
-//#include "tile_generation.hpp"
+#include "tile_generation.hpp"
+
 #include <hpx/hpx_main.hpp>
 #include <iostream>
 #include <vector>
 
-bool are_identical(const std::vector<std::vector<double>> &A,
-                   const std::vector<std::vector<double>> &B,
-                   double tol = 1e-14)
-{
-    if (A.size() != B.size())
-    {
-        std::cout << "Size mismatch: rows " << A.size() << " vs " << B.size() << std::endl;
-        return false;
-    }
-
-    for (std::size_t i = 0; i < A.size(); ++i)
-    {
-        if (A[i].size() != B[i].size())
-        {
-            std::cout << "Size mismatch at row " << i << ": cols " << A[i].size() << " vs " << B[i].size() << std::endl;
-            return false;
-        }
-
-        for (std::size_t j = 0; j < A[i].size(); ++j)
-        {
-            double diff = std::abs(A[i][j] - B[i][j]);
-            if (diff > tol)
-            {
-                std::cout << "Mismatch at (" << i << "," << j << ")  " << "cpu=" << B[i][j] << " gpu=" << A[i][j]
-                          << " diff=" << diff << std::endl;
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
+// bool are_identical(const std::vector<std::vector<double>> &A,
+//                    const std::vector<std::vector<double>> &B,
+//                    double tol = 1e-14)
+// {
+//     if (A.size() != B.size())
+//     {
+//         std::cout << "Size mismatch: rows " << A.size() << " vs " << B.size() << std::endl;
+//         return false;
+//     }
+//
+//     for (std::size_t i = 0; i < A.size(); ++i)
+//     {
+//         if (A[i].size() != B[i].size())
+//         {
+//             std::cout << "Size mismatch at row " << i << ": cols " << A[i].size() << " vs " << B[i].size() << std::endl;
+//             return false;
+//         }
+//
+//         for (std::size_t j = 0; j < A[i].size(); ++j)
+//         {
+//             double diff = std::abs(A[i][j] - B[i][j]);
+//             if (diff > tol)
+//             {
+//                 std::cout << "Mismatch at (" << i << "," << j << ")  " << "cpu=" << B[i][j] << " gpu=" << A[i][j]
+//                           << " diff=" << diff << std::endl;
+//                 return false;
+//             }
+//         }
+//     }
+//
+//     return true;
+// }
 
 int main(int argc, char *argv[])
 {
-    /////////////////////
-    /////// configuration
-    std::size_t START = 256;
-    std::size_t END = 65'536;
-    std::size_t STEP = 2;
-    std::size_t LOOP = 10;
+    ///////////////////////////////////////////////////////////////////////////
+    // cmdline arguments
+    using namespace hpx::program_options;
+    options_description opts;
+    opts.add_options()
+        ("loop", value<std::size_t>()->default_value(1), "Number of repititions")
+        ("size_start", value<std::size_t>()->default_value(32), "Start problem size")
+        ("size_stop", value<std::size_t>()->default_value(128), "Stop problem size")
+        ("tiles_start", value<std::size_t>()->default_value(16), "Start tiles per dimension")
+        ("tiles_stop", value<std::size_t>()->default_value(32), "Stop tiles per dimension");
+    variables_map vm;
+    store(parse_command_line(argc, argv, opts), vm);
+    notify(vm);
+    ///////////////////////////////////////////////////////////////////////////
+    // configuration
+    const std::size_t LOOP = vm["loop"].as<std::size_t>();
 
-    const std::size_t N_CORES = 128;
-    const std::size_t n_tiles = 32;
+    const std::size_t START_SIZE = vm["size_start"].as<std::size_t>();
+    const std::size_t STOP_SIZE = vm["size_stop"].as<std::size_t>();
+    const std::size_t STEP_SIZE = 2;
+
+    const std::size_t START_TILES = vm["tiles_start"].as<std::size_t>();
+    const std::size_t STOP_TILES = vm["tiles_stop"].as<std::size_t>();
+    const std::size_t STEP_TILES = 2;
 
     bool HEADER_FLAG = true;
-    for (std::size_t core = 128; core <= N_CORES; core = core * 2)
+    for (std::size_t n_tiles = START_TILES; n_tiles <= STOP_TILES; n_tiles = n_tiles * STEP_TILES)
     {
-        for (std::size_t size = START; size <= END; size = size * STEP)
+        for (std::size_t size = START_SIZE; size <= STOP_SIZE; size = size * STEP_SIZE)
         {
             for (std::size_t l = 0; l < LOOP; l++)
             {
