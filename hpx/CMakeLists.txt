@@ -70,9 +70,7 @@ message(STATUS "OpenBLAS include dir: ${OpenBLAS_INCLUDE_DIR}")
   add_subdirectory(core)
 
   # Add the executable
-  add_executable(cholesky_hpx execute.cpp)
-
-  #target_compile_features(cholesky_hpx PUBLIC cxx_std_17)
+  add_executable(cholesky_hpx main.cpp)
 
   # Link the libraries
   target_link_libraries(cholesky_hpx PUBLIC Cholesky::core HPX::wrap_main)
