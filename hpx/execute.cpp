@@ -44,61 +44,71 @@ int main(int argc, char *argv[])
     std::size_t START = 256;
     std::size_t END = 65'536;
     std::size_t STEP = 2;
-    std::size_t LOOP = 1;
+    std::size_t LOOP = 10;
 
     const std::size_t N_CORES = 128;
     const std::size_t n_tiles = 32;
 
+    bool HEADER_FLAG = true;
     for (std::size_t core = 128; core <= N_CORES; core = core * 2)
     {
         for (std::size_t size = START; size <= END; size = size * STEP)
         {
-            std::cout << "\n\nProblem size: " << size << std::endl;
-            // Compute tile sizes and number of predict tiles
-            std::size_t tile_size = size / n_tiles;
-            std::cout << "Tile size: " << tile_size << std::endl;
-
             for (std::size_t l = 0; l < LOOP; l++)
             {
-                // async
+                std::size_t tile_size = size / n_tiles;
+                // header for output file
+                std::string header = "threads;problem_size;tile_size;n_tiles;";
+                // runtime config and values
+                std::string values = std::to_string(hpx::get_num_worker_threads());
+                values += ";" + std::to_string(size);
+                values += ";" + std::to_string(size / n_tiles);
+                values += ";" + std::to_string(n_tiles);
+                ///////////////////////////////////////////////////////////////////////////
+                // futurized
+                std::vector<std::string> f_modes = {
+                    "async_future",
+                    "async_ref",
+                    "async_val",
+                    "sync_future",
+                    "sync_ref",
+                    "sync_val"
+                };
+                for (const auto& mode : f_modes) {
+                    auto f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
+                    auto cholesky_cpu   = cpu::cholesky_future(f_tiled_matrix, mode);
+
+                    header += ";" + mode;
+                    values += ";" + std::to_string(cholesky_cpu);
+                }
+                ///////////////////////////////////////////////////////////////////////////
+                // mutable
+                std::string mode = "async_mut";
                 auto mut_tiled_matrix = gen_mutable_tiled_matrix(size, n_tiles);
                 auto cholesky_cpu = cpu::cholesky_mutable(mut_tiled_matrix);
-                std::cout << "cpu mut future: " << cholesky_cpu << std::endl;
 
-                // async
-                auto f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
-                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "async_future");
-                std::cout << "cpu async future: " << cholesky_cpu << std::endl;
+                header += ";" + mode;
+                values += ";" + std::to_string(cholesky_cpu);
+                ///////////////////////////////////////////////////////////////////////////
+                // loop
+                std::vector<std::string> loop_modes = {
+                    "loop_one",
+                    "loop_two"
+                };
+                for (const auto& mode : loop_modes) {
+                    auto tiled_matrix = gen_tiled_matrix(size, n_tiles);
+                    auto cholesky_cpu = cpu::cholesky_loop(tiled_matrix, mode);
 
-                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
-                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "async_ref");
-                std::cout << "cpu async ref: " << cholesky_cpu << std::endl;
-
-                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
-                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "async_val");
-                std::cout << "cpu async val: " << cholesky_cpu << std::endl;
-
-                // sync
-                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
-                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "sync_future");
-                std::cout << "cpu sync future: " << cholesky_cpu << std::endl;
-
-                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
-                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "sync_ref");
-                std::cout << "cpu sync ref: " << cholesky_cpu << std::endl;
-
-                f_tiled_matrix = gen_futurized_tiled_matrix(size, n_tiles);
-                cholesky_cpu = cpu::cholesky_future(f_tiled_matrix, "sync_val");
-                std::cout << "cpu sync val: " << cholesky_cpu << std::endl;
-
-                // // loop
-                // auto tiled_matrix = gen_tiled_matrix(size, n_tiles);
-                // cholesky_cpu = cpu::cholesky_loop(tiled_matrix, "loop_one");
-                // std::cout << "cpu loop one: " << cholesky_cpu << std::endl;
-                //
-                // tiled_matrix = gen_tiled_matrix(size, n_tiles);
-                // cholesky_cpu = cpu::cholesky_loop(tiled_matrix, "loop_two");
-                // std::cout << "cpu loop two: " << cholesky_cpu << std::endl;
+                    header += ";" + mode;
+                    values += ";" + std::to_string(cholesky_cpu);
+                }
+                ///////////////////////////////////////////////////////////////////////////
+                // write header once
+                if (HEADER_FLAG){
+                    HEADER_FLAG = false;
+                    std::cout << header << std::endl;
+                }
+                std::cout << values << std::endl;
             }
         }
     }
