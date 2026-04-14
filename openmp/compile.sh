@@ -14,9 +14,16 @@ if command -v spack &> /dev/null; then
     HOSTNAME=$(hostname -s)
 
     if [[ "$HOSTNAME" == "ipvs-epyc1" ]]; then
-	module load gcc/14.2.0
-	export CC=gcc
-	export CXX=g++
+	# GCC
+	# module load gcc/14.2.0
+	# export CC=gcc
+	# export CXX=g++
+	# LLVM
+	spack load llvm@22.1.2
+	export CC=clang
+	export CXX=clang++
+	export LD_LIBRARY_PATH=$(spack location -i llvm@22.1.2)/lib/x86_64-unknown-linux-gnu:$LD_LIBRARY_PATH
+	# OpenBLAS
 	spack load openblas@0.3.28%gcc@14.2.0 threads=none
 	
     elif [[ "$HOSTNAME" == "nasrin0" || "$HOSTNAME" == "nasrin1" ]]; then
@@ -36,7 +43,8 @@ fi
 rm -rf build && mkdir build && cd build
 
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j
+make -j VERBOSE=1
 
 cd ..
-#OMP_NUM_THREADS=128 OMP_PROC_BIND=close OMP_PLACES=cores ./build/cholesky_openmp #--size_stop 256 --loop 5
+
+OMP_NUM_THREADS=128 OMP_PROC_BIND=close OMP_PLACES=cores ./build/cholesky_openmp #--size_stop 256 --loop 5

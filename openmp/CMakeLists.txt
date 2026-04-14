@@ -70,5 +70,5 @@ if(BUILD_CORE)
   add_executable(cholesky_openmp main.cpp)
 
   # Link the libraries
-  target_link_libraries(cholesky_openmp PUBLIC Cholesky::core)
+  target_link_libraries(cholesky_openmp PUBLIC Cholesky::core OpenMP::OpenMP_CXX)
 endif()
