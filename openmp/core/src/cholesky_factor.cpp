@@ -25,7 +25,7 @@
 #define CHOL_OMP_FOR_TRAILING_COLLAPSE() _Pragma("omp for collapse(2) schedule(dynamic, 1)")
 #define CHOL_OMP_FOR_TRAILING() _Pragma("omp for schedule(dynamic, 1)")
 #else
-#define CHOL_OMP_FOR_TRAILING_COLLAPSE() _Pragma("omp for collapse(2) schedule(static)")
+#define CHOL_OMP_FOR_TRAILING_COLLAPSE() _Pragma("omp for collapse(2)")
 #define CHOL_OMP_FOR_TRAILING() _Pragma("omp for schedule(static)")
 #endif
 
