@@ -25,7 +25,7 @@
 #define CHOL_OMP_FOR_TRAILING_COLLAPSE() _Pragma("omp for collapse(2) schedule(dynamic, 1)")
 #define CHOL_OMP_FOR_TRAILING() _Pragma("omp for schedule(dynamic, 1)")
 #else
-#define CHOL_OMP_FOR_TRAILING_COLLAPSE() _Pragma("omp for collapse(2) schedule(static")
+#define CHOL_OMP_FOR_TRAILING_COLLAPSE() _Pragma("omp for collapse(2) schedule(static)")
 #define CHOL_OMP_FOR_TRAILING() _Pragma("omp for schedule(static)")
 #endif
 
@@ -209,7 +209,7 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
                 {
                     for (std::size_t k = 0; k < n_tiles; ++k)
                     {
-                        auto &tile_kk = tiles[k * n_tiles + k];
+                        std::vector<double> &tile_kk = tiles[k * n_tiles + k];
 
                         // POTRF is on the critical path; give it the
                         // highest remaining priority so the runtime
@@ -225,7 +225,7 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
                         const int trsm_prio = static_cast<int>(n_tiles - k) - 1;
                         for (std::size_t m = k + 1; m < n_tiles; ++m)
                         {
-                            auto &tile_mk = tiles[m * n_tiles + k];
+                            std::vector<double> &tile_mk = tiles[m * n_tiles + k];
 
 #pragma omp task depend(in : tile_kk) depend(inout : tile_mk) priority(trsm_prio)
                             {
@@ -236,8 +236,11 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
 
                         for (std::size_t m = k + 1; m < n_tiles; ++m)
                         {
-                            auto &tile_mk = tiles[m * n_tiles + k];
-                            auto &tile_mm = tiles[m * n_tiles + m];
+                            // tile_mk is read by every SYRK / GEMM in
+                            // this trailing update; nothing in the loop
+                            // body writes through it, so it's const.
+                            const std::vector<double> &tile_mk = tiles[m * n_tiles + k];
+                            std::vector<double> &tile_mm = tiles[m * n_tiles + m];
 
                             // The SYRK for m == k+1 produces the next
                             // panel's diagonal tile, which is the input
@@ -252,8 +255,9 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
 
                             for (std::size_t n = k + 1; n < m; ++n)
                             {
-                                auto &tile_nk = tiles[n * n_tiles + k];
-                                auto &tile_mn = tiles[m * n_tiles + n];
+                                // tile_nk is read-only here too.
+                                const std::vector<double> &tile_nk = tiles[n * n_tiles + k];
+                                std::vector<double> &tile_mn = tiles[m * n_tiles + n];
 
                                 // GEMMs dominate the FLOP count but are
                                 // off the critical path. untied lets a
