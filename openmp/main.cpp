@@ -84,10 +84,9 @@ int main(int argc, char *argv[])
                 ///////////////////////////////////////////////////////////////////////////
                 std::vector<std::string> modes = { "for_collapse",
                                                    "for_naive",
-
                                                    "task_naive",
-                                                   "task_depend",
-                                                   "task_prio" };
+                                                   "task_depend"};
+                                                   //,"task_prio" };
 
                 for (const auto &mode : modes)
                 {
@@ -98,12 +97,7 @@ int main(int argc, char *argv[])
                     values += ";" + std::to_string(cholesky_cpu);
 
 #ifdef ENABLE_VALIDATION
-                    // Relative residual ||A - L L^T||_F / ||A||_F. 1e-10
-                    // is a loose-but-safe bound for an FP64 tiled
-                    // Cholesky on the problem sizes this benchmark
-                    // exercises. Compiled in only when the CMake option
-                    // ENABLE_VALIDATION is set; not written to the CSV
-                    // output file - purely console.
+                    // Validate by computing relative residual ||A - L L^T||_F / ||A||_F
                     constexpr double residual_tol = 1e-10;
                     const double residual = cpu::cholesky_residual(size, n_tiles, tiled_matrix);
                     std::cout << "[validate] mode=" << mode << " size=" << size << " n_tiles=" << n_tiles

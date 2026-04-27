@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=128
-#SBATCH --time=72:00:00
+#SBATCH --time=144:00:00
 #SBATCH --exclusive
 
 # Resolve directory where the script is located
@@ -15,9 +15,7 @@ SCRIPT_DIR="$(pwd)"
 export OMP_NUM_THREADS=128
 export OMP_PROC_BIND=close
 export OMP_PLACES=cores
-# Enable task priorities (used by the task_depend variant to keep
-# POTRF / panel TRSM / next-panel SYRK ahead of bulk GEMMs).
-export OMP_MAX_TASK_PRIORITY=16
+#export OMP_MAX_TASK_PRIORITY=16
 
 spack load llvm@22.1.2
 export LD_LIBRARY_PATH=$(spack location -i llvm@22.1.2)/lib/x86_64-unknown-linux-gnu:$LD_LIBRARY_PATH

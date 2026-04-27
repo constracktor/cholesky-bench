@@ -7,7 +7,6 @@ endif()
 
 add_library(cholesky_core STATIC ${SOURCE_FILES})
 
-# We'd like to consume it just as core under the GPRat namespace
 set_property(TARGET cholesky_core PROPERTY EXPORT_NAME core)
 add_library(Cholesky::core ALIAS cholesky_core)
 
