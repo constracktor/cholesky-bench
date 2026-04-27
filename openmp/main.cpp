@@ -86,7 +86,8 @@ int main(int argc, char *argv[])
                                                    "for_naive",
 
                                                    "task_naive",
-                                                   "task_depend" };
+                                                   "task_depend",
+                                                   "task_prio" };
 
                 for (const auto &mode : modes)
                 {

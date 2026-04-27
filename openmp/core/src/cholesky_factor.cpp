@@ -203,6 +203,78 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
             }
             break;
         case Variant::task_depend:
+            // Plain dependency-driven task graph: same structure as
+            // task_prio below but without priority() / untied clauses.
+            // The runtime schedules tasks in dependency order with no
+            // critical-path bias, which is the right baseline to compare
+            // against task_prio (and what most OpenMP texts call out as
+            // "tiled Cholesky with task dependencies").
+#pragma omp parallel
+            {
+#pragma omp single
+                {
+                    for (std::size_t k = 0; k < n_tiles; ++k)
+                    {
+                        std::vector<double> &tile_kk = tiles[k * n_tiles + k];
+
+#pragma omp task depend(inout : tile_kk)
+                        {
+                            // POTRF: Compute Cholesky factor L
+                            potrf(tile_kk, N);
+                        }
+
+                        for (std::size_t m = k + 1; m < n_tiles; ++m)
+                        {
+                            std::vector<double> &tile_mk = tiles[m * n_tiles + k];
+
+#pragma omp task depend(in : tile_kk) depend(inout : tile_mk)
+                            {
+                                // TRSM:  Solve X * L^T = A
+                                trsm(tile_kk, tile_mk, N, N, Blas_trans, Blas_right);
+                            }
+                        }
+
+                        for (std::size_t m = k + 1; m < n_tiles; ++m)
+                        {
+                            const std::vector<double> &tile_mk = tiles[m * n_tiles + k];
+                            std::vector<double> &tile_mm = tiles[m * n_tiles + m];
+
+#pragma omp task depend(in : tile_mk) depend(inout : tile_mm)
+                            {
+                                // SYRK: A = A - B * B^T
+                                syrk(tile_mm, tile_mk, N);
+                            }
+
+                            for (std::size_t n = k + 1; n < m; ++n)
+                            {
+                                const std::vector<double> &tile_nk = tiles[n * n_tiles + k];
+                                std::vector<double> &tile_mn = tiles[m * n_tiles + n];
+
+#pragma omp task depend(in : tile_mk, tile_nk) depend(inout : tile_mn)
+                                {
+                                    // GEMM: C = C - A * B^T
+                                    gemm(tile_mk,
+                                         tile_nk,
+                                         tile_mn,
+                                         N,
+                                         N,
+                                         N,
+                                         Blas_no_trans,
+                                         Blas_trans);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        case Variant::task_prio:
+            // task_depend variant with critical-path priorities and
+            // untied GEMM tasks. Acts as a software lookahead: the
+            // runtime is steered to schedule POTRF / panel TRSM / next-
+            // panel SYRK ahead of the bulk GEMMs that dominate FLOPs but
+            // sit off the critical path. priority() takes effect only
+            // when OMP_MAX_TASK_PRIORITY > 0 at runtime.
 #pragma omp parallel
             {
 #pragma omp single
@@ -219,7 +291,7 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
 #pragma omp task depend(inout : tile_kk) priority(potrf_prio)
                         {
                             // POTRF: Compute Cholesky factor L
-                            potrf(tiles[k * n_tiles + k], N);
+                            potrf(tile_kk, N);
                         }
 
                         const int trsm_prio = static_cast<int>(n_tiles - k) - 1;
@@ -230,7 +302,7 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
 #pragma omp task depend(in : tile_kk) depend(inout : tile_mk) priority(trsm_prio)
                             {
                                 // TRSM:  Solve X * L^T = A
-                                trsm(tiles[k * n_tiles + k], tiles[m * n_tiles + k], N, N, Blas_trans, Blas_right);
+                                trsm(tile_kk, tile_mk, N, N, Blas_trans, Blas_right);
                             }
                         }
 
@@ -250,7 +322,7 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
 #pragma omp task depend(in : tile_mk) depend(inout : tile_mm) priority(syrk_prio)
                             {
                                 // SYRK: A = A - B * B^T
-                                syrk(tiles[m * n_tiles + m], tiles[m * n_tiles + k], N);
+                                syrk(tile_mm, tile_mk, N);
                             }
 
                             for (std::size_t n = k + 1; n < m; ++n)
@@ -266,9 +338,9 @@ void right_looking_cholesky_tiled(Variant variant, Tiled_vector_matrix &tiles)
 #pragma omp task depend(in : tile_mk, tile_nk) depend(inout : tile_mn) untied priority(0)
                                 {
                                     // GEMM: C = C - A * B^T
-                                    gemm(tiles[m * n_tiles + k],
-                                         tiles[n * n_tiles + k],
-                                         tiles[m * n_tiles + n],
+                                    gemm(tile_mk,
+                                         tile_nk,
+                                         tile_mn,
                                          N,
                                          N,
                                          N,
