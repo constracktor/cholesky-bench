@@ -2,6 +2,7 @@
 
 #include "adapter_cblas_fp64.hpp"
 #include <hpx/algorithm.hpp>
+#include <hpx/execution.hpp>
 #include <hpx/functional.hpp>
 #include <hpx/future.hpp>
 
@@ -131,6 +132,10 @@ void right_looking_cholesky_tiled_loop(Variant variant, Tiled_vector_matrix &til
     // Parameters
     int N = std::sqrt(tiles[0].size());
     std::size_t n_tiles = std::sqrt(tiles.size());
+    // The trailing-update outer loop has triangular work this
+    // parallel execution policy adds dynamic scheduling for the outer loops
+    auto par_dyn = hpx::execution::par.with(hpx::execution::experimental::dynamic_chunk_size(1));
+
     // Variants
     switch (variant)
     {
@@ -151,7 +156,7 @@ void right_looking_cholesky_tiled_loop(Variant variant, Tiled_vector_matrix &til
                     });
 
                 hpx::experimental::for_loop(
-                    hpx::execution::par,
+                    par_dyn,
                     k + 1,
                     n_tiles,
                     [&](std::size_t m)
@@ -200,7 +205,7 @@ void right_looking_cholesky_tiled_loop(Variant variant, Tiled_vector_matrix &til
                     });
 
                 hpx::experimental::for_loop(
-                    hpx::execution::par,
+                    par_dyn,
                     k + 1,
                     n_tiles,
                     [&](std::size_t m)
@@ -239,7 +244,7 @@ void right_looking_cholesky_tiled_loop(Variant variant, Tiled_vector_matrix &til
 void right_looking_cholesky_tiled_void(Tiled_vector_matrix &tiles, Tiled_void_matrix &dep_tiles)
 {
     // Tile parameters
-    std::size_t n_tiles int N = static_cast<int>(std::sqrt(tiles[0].size()));
+    int N = static_cast<int>(std::sqrt(tiles[0].size()));
     std::size_t n_tiles = std::sqrt(tiles.size());
 
     for (std::size_t k = 0; k < n_tiles; k++)
