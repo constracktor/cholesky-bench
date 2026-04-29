@@ -1,6 +1,6 @@
 # Cholesky-Bench
 
-Cholesky-Bench benchmarks right-looking tiled Cholesky factorization from fork-join to asynchronous tasks across several parallelism models, currently comparing OpenMP and HPX implementations side by side.
+Cholesky-Bench benchmarks right-looking tiled Cholesky factorization from fork-join to asynchronous tasks across several parallelism models, currently comparing OpenMP and HPX implementations side by side. A non-tiled parallel-BLAS reference is also included as a baseline.
 
 ## Variants
 
@@ -24,27 +24,40 @@ Cholesky-Bench benchmarks right-looking tiled Cholesky factorization from fork-j
 | `loop_two` | Collapsed fork-join with dynamic schedule for trailing-update |
 | `async_void` |  Fully asynchronous tasking with dataflow using `hpx::shared_future<void>` |
 
+### Reference (`reference/`)
+
+| Mode | Description |
+|------|-------------|
+| `reference` | Single threaded `LAPACKE_dpotrf` call on the full matrix; no tiling. Parallelism is delegated entirely to a threaded BLAS (OpenBLAS built with `threads=openmp`, or threaded Intel oneMKL via `ENABLE_MKL=ON`). |
+| `plasma` | Single `plasma_dpotrf` call on the full matrix. PLASMA does its own tiled, OpenMP-task-based parallel Cholesky internally; tile size is left at PLASMA's built-in default. Built only when `ENABLE_PLASMA=ON`. |
+
+This directory is the natural baseline for the OpenMP and HPX tiled implementations: the `reference` mode isolates the contribution of vendor-provided dense-LA parallelism, and the `plasma` mode adds a true tiled-parallel competitor that uses the same OpenMP runtime as the in-house variants.
+
 ## Dependencies
 
-Both implementations share the same sequential BLAS backend and are built with CMake (≥ 3.23) and C++20.
+All three implementations are built with CMake (≥ 3.23) and C++20. The OpenMP and HPX directories link against a *sequential* BLAS (parallelism is at the tile level); the `reference/` directory links against a *threaded* BLAS instead.
 
-| Dependency | OpenMP | HPX |
-|---|---|---|
-| OpenBLAS 0.3.28 | ✓ (default) | ✓ (default) |
-| Intel oneMKL | optional (`ENABLE_MKL=ON`) | optional (`ENABLE_MKL=ON`) |
-| HPX 1.11.0 + jemalloc | — | ✓ |
-| GCC 14.2.0 | ✓ | ✓ |
-| LLVM/Clang 22.1.2 | optional | — |
+| Dependency | OpenMP | HPX | Reference |
+|---|---|---|---|
+| OpenBLAS 0.3.28 (sequential) | ✓ (default) | ✓ (default) | — |
+| OpenBLAS 0.3.28 (`threads=openmp`) | — | — | ✓ (default) |
+| Intel oneMKL (sequential) | optional (`ENABLE_MKL=ON`) | optional (`ENABLE_MKL=ON`) | — |
+| Intel oneMKL (`intel_thread`) | — | — | optional (`ENABLE_MKL=ON`) |
+| PLASMA | — | — | optional (`ENABLE_PLASMA=ON`) |
+| HPX 1.11.0 + jemalloc | — | ✓ | — |
+| GCC 14.2.0 | ✓ | ✓ | ✓ |
+| LLVM/Clang 22.1.2 | optional | — | — |
 
 Dependencies are managed via [Spack](https://spack.io/). The compile scripts auto-detect the host system and load the correct Spack environment.
 
 ## Build
 
-From within the `openmp/` or `hpx/` directory, run:
+From within the `openmp/`, `hpx/`, or `reference/` directory, run:
 
 ```bash
-./compile.sh [gcc|llvm]   # OpenMP: gcc (default) or llvm
-./compile.sh              # HPX: always gcc
+./compile.sh [gcc|llvm]   # OpenMP:    gcc (default) or llvm
+./compile.sh              # HPX:       always gcc
+./compile.sh              # Reference: always gcc
 ```
 
 The script clears and recreates the `build/` directory, then runs CMake in Release mode followed by a parallel make.
@@ -55,10 +68,11 @@ These can be set as environment variables before calling `compile.sh`:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `ENABLE_VALIDATION` | `OFF` | After each factorization, compute the relative residual ‖A − LL^T‖_F / ‖A‖_F and warn if it exceeds 1e-10. Mutually exclusive with `DISABLE_COMPUTATION`. |
-| `DISABLE_COMPUTATION` | `OFF` | Replace all BLAS/tile-generation calls with no-ops. The task graph and loops remain intact, so scheduling overhead can be measured in isolation. |
-| `ENABLE_DYNAMIC_SCHEDULE` | `OFF` | *(OpenMP only)* Use `schedule(dynamic,1)` on the trailing-update worksharing loops in `for_collapse`. Requires the LLVM toolchain; rejected at compile time with GCC. |
-| `ENABLE_MKL` | `OFF` | Link against Intel oneMKL instead of OpenBLAS. |
+| `ENABLE_VALIDATION` | `OFF` | After each factorization, compute the relative residual ‖A − LL^T‖_F / ‖A‖_F and warn if it exceeds 1e-10. In `openmp/` and `hpx/`, mutually exclusive with `DISABLE_COMPUTATION`. |
+| `DISABLE_COMPUTATION` | `OFF` | *(`openmp/` and `hpx/` only)* Replace all BLAS/tile-generation calls with no-ops. The task graph and loops remain intact, so scheduling overhead can be measured in isolation. |
+| `ENABLE_DYNAMIC_SCHEDULE` | `OFF` | *(`openmp/` only)* Use `schedule(dynamic,1)` on the trailing-update worksharing loops in `for_collapse`. Requires the LLVM toolchain; rejected at compile time with GCC. |
+| `ENABLE_MKL` | `OFF` | Link against Intel oneMKL instead of OpenBLAS. In `openmp/` and `hpx/` this is the *sequential* MKL; in `reference/` it is the *threaded* MKL. |
+| `ENABLE_PLASMA` | `OFF` | *(`reference/` only)* Also build the PLASMA tiled-Cholesky variant. Adds a `plasma` column alongside `reference` in the runtime output. |
 
 **Examples:**
 
@@ -71,6 +85,12 @@ ENABLE_DYNAMIC_SCHEDULE=ON ./compile.sh llvm
 
 # HPX: measure pure scheduling overhead
 DISABLE_COMPUTATION=ON ./compile.sh
+
+# Reference: threaded MKL baseline
+ENABLE_MKL=ON ./compile.sh
+
+# Reference: also build the PLASMA tiled-Cholesky variant
+ENABLE_PLASMA=ON ./compile.sh
 ```
 
 ## Run
@@ -89,16 +109,22 @@ OMP_NUM_THREADS=128 OMP_PROC_BIND=close OMP_PLACES=cores \
   --hpx:threads=128 \
   --loop=1 --size_start=1024 --size_stop=65536 \
   --tiles_start=64 --tiles_stop=64
+
+# Reference (parallel BLAS, no tiling)
+OMP_NUM_THREADS=128 OMP_PROC_BIND=close OMP_PLACES=cores \
+  ./build/cholesky_reference \
+  --loop 1 --size_start 1024 --size_stop 65536
 ```
 
 ### Via SLURM
 
-Both directories contain a `run.sh` that is a ready-to-submit SLURM batch script (128 CPUs, exclusive node, 144-hour wall time):
+All three directories contain a `run.sh` that is a ready-to-submit SLURM batch script (128 CPUs, exclusive node, 144-hour wall time):
 
 ```bash
-sbatch openmp/run.sh          # gcc runtime (default)
-sbatch openmp/run.sh llvm     # llvm runtime
+sbatch openmp/run.sh             # gcc runtime (default)
+sbatch openmp/run.sh llvm        # llvm runtime
 sbatch hpx/run.sh
+sbatch reference/run.sh
 ```
 
 ### Command-line arguments
@@ -107,7 +133,7 @@ sbatch hpx/run.sh
 |----------|---------|-------------|
 | `--loop` / `--loop=` | 1 | Number of timed repetitions per configuration |
 | `--size_start` / `--size_stop` | 32 / 128 | Problem size range (doubled each step) |
-| `--tiles_start` / `--tiles_stop` | 16 / 32 | Tile count range (doubled each step) |
+| `--tiles_start` / `--tiles_stop` | 16 / 32 | Tile count range (doubled each step). Accepted but ignored by the `reference/` binary, which has no tiling axis. |
 
 ## Output
 
@@ -116,6 +142,7 @@ Results are appended to a text file in the working directory:
 ```
 runtimes_openmp_cholesky_<suffix>.txt
 runtimes_hpx_cholesky_<suffix>.txt
+runtimes_reference_cholesky_<suffix>.txt
 ```
 
 The suffix encodes which dimension is swept: `tile_` if tiles vary, `size_` if size varies, followed by the loop count. The file uses `;`-separated columns:
@@ -123,6 +150,13 @@ The suffix encodes which dimension is swept: `tile_` if tiles vary, `size_` if s
 ```
 threads;problem_size;tile_size;n_tiles;for_collapse;for_naive;task_naive;task_depend
 128;65536;1024;64;3.14;3.21;2.98;2.87
+```
+
+The `reference/` binary reports a `reference` column (and a `plasma` column when built with `ENABLE_PLASMA=ON`), with `tile_size = problem_size` and `n_tiles = 1`, so its runtime files merge cleanly with the tiled benchmarks on the `problem_size` key:
+
+```
+threads;problem_size;tile_size;n_tiles;reference;plasma
+128;65536;65536;1;2.71;2.45
 ```
 
 The same lines are also printed to stdout.
@@ -150,7 +184,26 @@ The same lines are also printed to stdout.
 │           ├── tile_generation.cpp
 │           ├── validate.cpp
 │           └── adapter_cblas_fp64.cpp
-└── hpx/
+├── hpx/
+│   ├── CMakeLists.txt
+│   ├── CMakePresets.json
+│   ├── compile.sh          # build script (gcc only)
+│   ├── run.sh              # SLURM job script
+│   ├── main.cpp
+│   └── core/
+│       ├── include/
+│       │   ├── cholesky_factor.hpp
+│       │   ├── functions.hpp
+│       │   ├── tile_generation.hpp
+│       │   ├── validate.hpp
+│       │   └── adapter_cblas_fp64.hpp
+│       └── src/
+│           ├── cholesky_factor.cpp
+│           ├── functions.cpp
+│           ├── tile_generation.cpp
+│           ├── validate.cpp
+│           └── adapter_cblas_fp64.cpp
+└── reference/
     ├── CMakeLists.txt
     ├── CMakePresets.json
     ├── compile.sh          # build script (gcc only)
@@ -160,13 +213,15 @@ The same lines are also printed to stdout.
         ├── include/
         │   ├── cholesky_factor.hpp
         │   ├── functions.hpp
-        │   ├── tile_generation.hpp
+        │   ├── matrix_generation.hpp
+        │   ├── plasma_factor.hpp     # only used when ENABLE_PLASMA=ON
         │   ├── validate.hpp
         │   └── adapter_cblas_fp64.hpp
         └── src/
             ├── cholesky_factor.cpp
             ├── functions.cpp
-            ├── tile_generation.cpp
+            ├── matrix_generation.cpp
+            ├── plasma_factor.cpp     # only built when ENABLE_PLASMA=ON
             ├── validate.cpp
             └── adapter_cblas_fp64.cpp
 ```
