@@ -6,12 +6,13 @@
 namespace cpu
 {
 
-double cholesky(std::vector<double> &A, std::size_t N)
+double cholesky(std::vector<double> &A, std::size_t N, const std::string &variant)
 {
+    const Variant v = to_variant(variant);
     auto start = std::chrono::high_resolution_clock::now();
     ///////////////////////////////////////////////////////////////////////////
-    // Launch Cholesky decomposition: A = L * L^T (single threaded LAPACKE call)
-    parallel_blas_cholesky(A, static_cast<int>(N));
+    // Launch Cholesky decomposition: A = L * L^T (single dispatched call)
+    parallel_blas_cholesky(v, A, static_cast<int>(N));
     ///////////////////////////////////////////////////////////////////////////
     auto stop = std::chrono::high_resolution_clock::now();
     return (stop - start).count() / 1e9;

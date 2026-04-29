@@ -5,6 +5,10 @@ if(ENABLE_VALIDATION)
   list(APPEND SOURCE_FILES src/validate.cpp)
 endif()
 
+if(ENABLE_PLASMA)
+  list(APPEND SOURCE_FILES src/plasma_factor.cpp)
+endif()
+
 add_library(cholesky_core STATIC ${SOURCE_FILES})
 
 set_property(TARGET cholesky_core PROPERTY EXPORT_NAME core)
@@ -37,6 +41,15 @@ endif()
 
 if(ENABLE_MKL)
   target_compile_definitions(cholesky_core PUBLIC ENABLE_MKL)
+endif()
+
+if(ENABLE_PLASMA)
+  target_compile_definitions(cholesky_core PUBLIC ENABLE_PLASMA)
+  target_include_directories(cholesky_core PUBLIC ${PLASMA_INCLUDE_DIR})
+  target_link_libraries(cholesky_core PUBLIC ${PLASMA_LIB})
+  if(PLASMA_CORE_BLAS_LIB)
+    target_link_libraries(cholesky_core PUBLIC ${PLASMA_CORE_BLAS_LIB})
+  endif()
 endif()
 
 target_compile_features(cholesky_core PUBLIC cxx_std_17)

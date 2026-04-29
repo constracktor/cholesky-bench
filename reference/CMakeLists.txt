@@ -8,6 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_CORE "Build the core library" ON)
 option(ENABLE_MKL "Enable Intel oneMKL support (threaded)" OFF)
 option(
+  ENABLE_PLASMA
+  "Build the PLASMA tiled-Cholesky reference variant in addition to the LAPACKE_dpotrf one"
+  OFF)
+option(
   ENABLE_VALIDATION
   "Compute ||A - L*L^T||_F / ||A||_F after each factorization (off by default)"
   OFF)
@@ -76,6 +80,23 @@ if(BUILD_CORE)
   # the OpenMP runtime that threaded OpenBLAS / threaded MKL share.
   find_package(OpenMP REQUIRED)
 
+  if(ENABLE_PLASMA)
+    # PLASMA exposes its own tiled parallel Cholesky (plasma_dpotrf). Spack
+    # installs it as a single shared library plus a coreblas helper; we look
+    # for both and link whichever is present.
+    find_path(PLASMA_INCLUDE_DIR plasma.h)
+    if(NOT PLASMA_INCLUDE_DIR)
+      message(FATAL_ERROR "ENABLE_PLASMA=ON but plasma.h was not found")
+    endif()
+    find_library(PLASMA_LIB NAMES plasma REQUIRED)
+    find_library(PLASMA_CORE_BLAS_LIB NAMES coreblas plasma_core_blas)
+    message(STATUS "PLASMA include dir: ${PLASMA_INCLUDE_DIR}")
+    message(STATUS "PLASMA library: ${PLASMA_LIB}")
+    if(PLASMA_CORE_BLAS_LIB)
+      message(STATUS "PLASMA coreblas library: ${PLASMA_CORE_BLAS_LIB}")
+    endif()
+  endif()
+
   add_subdirectory(core)
 
   # Add the executable
@@ -87,5 +108,10 @@ if(BUILD_CORE)
 
   if(ENABLE_VALIDATION)
     target_compile_definitions(cholesky_reference PRIVATE ENABLE_VALIDATION)
+  endif()
+
+  if(ENABLE_PLASMA)
+    target_compile_definitions(cholesky_reference PRIVATE ENABLE_PLASMA)
+    target_include_directories(cholesky_reference PRIVATE ${PLASMA_INCLUDE_DIR})
   endif()
 endif()

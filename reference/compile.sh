@@ -9,12 +9,16 @@
 # (defaults match the project's CMakeLists.txt defaults):
 #   ENABLE_MKL          ON|OFF  (default OFF) - link threaded Intel oneMKL
 #                                               instead of threaded OpenBLAS
+#   ENABLE_PLASMA       ON|OFF  (default OFF) - also build the PLASMA tiled
+#                                               Cholesky variant (extra
+#                                               'plasma' column in the output)
 #   ENABLE_VALIDATION   ON|OFF  (default OFF) - residual check after each
 #                                               factorisation
 #
 # Examples:
 #   ./compile.sh
 #   ENABLE_MKL=ON ./compile.sh
+#   ENABLE_PLASMA=ON ./compile.sh
 #   ENABLE_VALIDATION=ON ./compile.sh
 ################################################################################
 set -e # Exit immediately if a command exits with a non-zero status.
@@ -23,9 +27,10 @@ set -e # Exit immediately if a command exits with a non-zero status.
 # CMake project options (env-var overridable; defaults match CMakeLists.txt)
 ################################################################################
 : "${ENABLE_MKL:=OFF}"
+: "${ENABLE_PLASMA:=OFF}"
 : "${ENABLE_VALIDATION:=OFF}"
 
-for var in ENABLE_MKL ENABLE_VALIDATION; do
+for var in ENABLE_MKL ENABLE_PLASMA ENABLE_VALIDATION; do
   case "${!var}" in
   ON | OFF) ;;
   *)
@@ -63,6 +68,9 @@ if command -v spack &>/dev/null; then
       # OpenBLAS built with OpenMP threading
       spack load openblas@0.3.28%gcc@14.2.0 threads=openmp ilp64=true
     fi
+    if [[ "$ENABLE_PLASMA" == "ON" ]]; then
+      spack load plasma%gcc@14.2.0
+    fi
 
   elif [[ "$HOSTNAME" == "nasrin0" || "$HOSTNAME" == "nasrin1" ]]; then
     # Compiler
@@ -70,6 +78,9 @@ if command -v spack &>/dev/null; then
     if [[ "$ENABLE_MKL" == "OFF" ]]; then
       # OpenBLAS built with OpenMP threading
       spack load openblas@0.3.28%gcc@14.2.0 arch=linux-almalinux9-zen3 threads=openmp
+    fi
+    if [[ "$ENABLE_PLASMA" == "ON" ]]; then
+      spack load plasma%gcc@14.2.0 arch=linux-almalinux9-zen3
     fi
 
   else
@@ -86,10 +97,12 @@ rm -rf build && mkdir build && cd build
 
 echo "CMake options:"
 echo "  ENABLE_MKL          = $ENABLE_MKL"
+echo "  ENABLE_PLASMA       = $ENABLE_PLASMA"
 echo "  ENABLE_VALIDATION   = $ENABLE_VALIDATION"
 
 cmake -DCMAKE_BUILD_TYPE=Release \
   -DENABLE_MKL="$ENABLE_MKL" \
+  -DENABLE_PLASMA="$ENABLE_PLASMA" \
   -DENABLE_VALIDATION="$ENABLE_VALIDATION" \
   ..
 make -j VERBOSE=1

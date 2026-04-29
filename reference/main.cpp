@@ -3,10 +3,14 @@
 #ifdef ENABLE_VALIDATION
 #include "validate.hpp"
 #endif
+#ifdef ENABLE_PLASMA
+#include <plasma.h>
+#endif
 #include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <omp.h>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -63,6 +67,15 @@ int main(int argc, char *argv[])
     std::ofstream runtime_file;
     runtime_file.open(runtime_file_path, std::ios_base::app);
 
+#ifdef ENABLE_PLASMA
+    // PLASMA spins up its own context and worker pool; do this once so the
+    // cost is not folded into any timed factorisation.
+    if (plasma_init() != 0)
+    {
+        throw std::runtime_error("plasma_init() failed");
+    }
+#endif
+
     for (std::size_t size = START_SIZE; size <= STOP_SIZE; size = size * STEP_SIZE)
     {
         for (std::size_t l = 0; l < LOOP; l++)
@@ -77,13 +90,18 @@ int main(int argc, char *argv[])
             values += std::string(";") + std::to_string(size);
             values += std::string(";") + std::to_string(1);
             ///////////////////////////////////////////////////////////////////
-            // Single mode: parallel-BLAS reference dpotrf on the full matrix.
+            // Reference modes:
+            //   reference -> single threaded LAPACKE_dpotrf2 on the full matrix
+            //   plasma    -> single plasma_dpotrf (added when ENABLE_PLASMA=ON)
             std::vector<std::string> modes = { "reference" };
+#ifdef ENABLE_PLASMA
+            modes.push_back("plasma");
+#endif
 
             for (const auto &mode : modes)
             {
                 auto A = gen_matrix(size);
-                auto cholesky_cpu = cpu::cholesky(A, size);
+                auto cholesky_cpu = cpu::cholesky(A, size, mode);
 
                 header += ";" + mode;
                 values += ";" + std::to_string(cholesky_cpu);
@@ -115,5 +133,10 @@ int main(int argc, char *argv[])
     }
 
     runtime_file.close();
+
+#ifdef ENABLE_PLASMA
+    plasma_finalize();
+#endif
+
     return 0;
 }
