@@ -79,8 +79,19 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    for (std::size_t size = START_SIZE; size <= STOP_SIZE; size = size * STEP_SIZE)
+    for (std::size_t input_size = START_SIZE; input_size <= STOP_SIZE; input_size = input_size * STEP_SIZE)
     {
+        // PLASMA 24.8.7's triangular descriptor allocation overflows int32 for
+        // N>65280 with the default nb=256. For sweep sizes in (65280, 65536]
+        // we transparently clamp the working size down to 65280 so the row
+        // still produces a real plasma timing instead of a nan. Sizes beyond
+        // 65536 fall through and the per-mode catch handler records nan.
+        std::size_t size = input_size;
+        if (size > 65280 && size <= 65536)
+        {
+            size = 65280;
+        }
+
         for (std::size_t l = 0; l < LOOP; l++)
         {
             // header for output file -- columns mirror the openmp/hpx output so
@@ -94,20 +105,17 @@ int main(int argc, char *argv[])
             values += std::string(";") + std::to_string(1);
             ///////////////////////////////////////////////////////////////////
             // Reference modes:
-            //   reference   -> single threaded LAPACKE_dpotrf2 on the full
-            //                  matrix (currently disabled; uncomment the
-            //                  initializer below to re-enable)
-            //   plasma      -> single plasma_dpotrf (high-level synchronous
-            //                  PLASMA API; added when ENABLE_PLASMA=ON)
-            //   plasma_tile -> plasma_omp_dpotrf over a manually-built
-            //                  plasma_desc_t (PLASMA's asynchronous tile
-            //                  interface; added when ENABLE_PLASMA=ON)
-            std::vector<std::string> modes = {
-                // "reference",
-            };
+            //   reference -> single threaded LAPACKE_dpotrf2 on the full
+            //                matrix. Enabled by default; disable at build
+            //                time with DISABLE_BLAS_REFERENCE=ON.
+            //   plasma    -> single plasma_dpotrf (high-level synchronous
+            //                PLASMA API). Built only when ENABLE_PLASMA=ON.
+            std::vector<std::string> modes = {};
+#ifndef DISABLE_BLAS_REFERENCE
+            modes.push_back("reference");
+#endif
 #ifdef ENABLE_PLASMA
             modes.push_back("plasma");
-            modes.push_back("plasma_tile");
 #endif
 
             for (const auto &mode : modes)

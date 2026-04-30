@@ -12,6 +12,10 @@ option(
   "Build the PLASMA tiled-Cholesky reference variant in addition to the LAPACKE_dpotrf one"
   OFF)
 option(
+  DISABLE_BLAS_REFERENCE
+  "Skip the LAPACKE_dpotrf reference mode at runtime. Linking is unchanged (PLASMA and validation still need cblas/lapacke)."
+  OFF)
+option(
   ENABLE_VALIDATION
   "Compute ||A - L*L^T||_F / ||A||_F after each factorization (off by default)"
   OFF)
@@ -113,5 +117,9 @@ if(BUILD_CORE)
   if(ENABLE_PLASMA)
     target_compile_definitions(cholesky_reference PRIVATE ENABLE_PLASMA)
     target_include_directories(cholesky_reference PRIVATE ${PLASMA_INCLUDE_DIR})
+  endif()
+
+  if(DISABLE_BLAS_REFERENCE)
+    target_compile_definitions(cholesky_reference PRIVATE DISABLE_BLAS_REFERENCE)
   endif()
 endif()
