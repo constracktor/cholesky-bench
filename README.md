@@ -28,10 +28,10 @@ Cholesky-Bench benchmarks right-looking tiled Cholesky factorization from fork-j
 
 | Mode | Description |
 |------|-------------|
-| `reference` | Single threaded `LAPACKE_dpotrf` call on the full matrix; no tiling. Parallelism is delegated entirely to a threaded BLAS (OpenBLAS built with `threads=openmp`, or threaded Intel oneMKL via `ENABLE_MKL=ON`). Enabled by default; disable with `DISABLE_BLAS_REFERENCE=ON`. |
+| `lapacke` | Single threaded `LAPACKE_dpotrf` call on the full matrix; no tiling. Parallelism is delegated entirely to a threaded BLAS (OpenBLAS built with `threads=openmp`, or threaded Intel oneMKL via `ENABLE_MKL=ON`). Enabled by default; disable with `DISABLE_BLAS_REFERENCE=ON`. |
 | `plasma` | Single `plasma_dpotrf` call on the full matrix (PLASMA's high-level synchronous API). PLASMA does its own tiled, OpenMP-task-based parallel Cholesky internally; tile size is left at PLASMA's built-in default. Built only when `ENABLE_PLASMA=ON`. |
 
-This directory is the natural baseline for the OpenMP and HPX tiled implementations: the `reference` mode isolates the contribution of vendor-provided dense-LA parallelism, and the `plasma` mode adds a tiled-parallel competitor that uses the same OpenMP runtime as the in-house variants.
+This directory is the natural baseline for the OpenMP and HPX tiled implementations: the `lapacke` mode isolates the contribution of vendor-provided dense-LA parallelism, and the `plasma` mode adds a tiled-parallel competitor that uses the same OpenMP runtime as the in-house variants.
 
 #### PLASMA descriptor int32 overflow
 
@@ -39,8 +39,8 @@ PLASMA 24.8.7's `plasma_desc_*_create()` routines compute their tile-storage siz
 
 The benchmark handles this transparently:
 
-- For sweep sizes `N` in `(65280, 65536]` the working size is **clamped to 65280** for the whole row (both `reference` and `plasma` run at 65280, and the `problem_size` column reports 65280). This keeps the largest practical PLASMA point on the curve without touching the underlying PLASMA build.
-- For `N > 65536` `plasma` records `nan`. `reference` (LAPACKE) is unaffected by the int32 ceiling and continues normally.
+- For sweep sizes `N` in `(65280, 65536]` the working size is **clamped to 65280** for the whole row (both `lapacke` and `plasma` run at 65280, and the `problem_size` column reports 65280). This keeps the largest practical PLASMA point on the curve without touching the underlying PLASMA build.
+- For `N > 65536` `plasma` records `nan`. `lapacke` is unaffected by the int32 ceiling and continues normally.
 
 Patching `(size_t)` casts into `control/descriptor.c` in the spack PLASMA package removes the ceiling and the clamp + guard become no-ops.
 
@@ -83,8 +83,8 @@ These can be set as environment variables before calling `compile.sh`:
 | `DISABLE_COMPUTATION` | `OFF` | *(`openmp/` and `hpx/` only)* Replace all BLAS/tile-generation calls with no-ops. The task graph and loops remain intact, so scheduling overhead can be measured in isolation. |
 | `ENABLE_DYNAMIC_SCHEDULE` | `OFF` | *(`openmp/` only)* Use `schedule(dynamic,1)` on the trailing-update worksharing loops in `for_collapse`. Requires the LLVM toolchain; rejected at compile time with GCC. |
 | `ENABLE_MKL` | `OFF` | Link against Intel oneMKL instead of OpenBLAS. In `openmp/` and `hpx/` this is the *sequential* MKL; in `reference/` it is the *threaded* MKL. |
-| `ENABLE_PLASMA` | `OFF` | *(`reference/` only)* Also build the PLASMA `plasma_dpotrf` variant. Adds a `plasma` column alongside `reference` in the runtime output. |
-| `DISABLE_BLAS_REFERENCE` | `OFF` | *(`reference/` only)* Skip the LAPACKE_dpotrf reference mode at runtime, so only `plasma` runs (when `ENABLE_PLASMA=ON`). Linking is unchanged — PLASMA and validation still need cblas/lapacke symbols. |
+| `ENABLE_PLASMA` | `OFF` | *(`reference/` only)* Also build the PLASMA `plasma_dpotrf` variant. Adds a `plasma` column alongside `lapacke` in the runtime output. |
+| `DISABLE_BLAS_REFERENCE` | `OFF` | *(`reference/` only)* Skip the `lapacke` mode at runtime, so only `plasma` runs (when `ENABLE_PLASMA=ON`). Linking is unchanged — PLASMA and validation still need cblas/lapacke symbols. |
 
 **Examples:**
 
@@ -167,10 +167,10 @@ threads;problem_size;tile_size;n_tiles;for_collapse;for_naive;task_naive;task_de
 128;65536;1024;64;3.14;3.21;2.98;2.87
 ```
 
-The `reference/` binary reports a `reference` column (suppressed by `DISABLE_BLAS_REFERENCE=ON`) plus a `plasma` column when built with `ENABLE_PLASMA=ON`, with `tile_size = problem_size` and `n_tiles = 1`, so its runtime files merge cleanly with the tiled benchmarks on the `problem_size` key:
+The `reference/` binary reports a `lapacke` column (suppressed by `DISABLE_BLAS_REFERENCE=ON`) plus a `plasma` column when built with `ENABLE_PLASMA=ON`, with `tile_size = problem_size` and `n_tiles = 1`, so its runtime files merge cleanly with the tiled benchmarks on the `problem_size` key:
 
 ```
-threads;problem_size;tile_size;n_tiles;reference;plasma
+threads;problem_size;tile_size;n_tiles;lapacke;plasma
 128;65280;65280;1;5.21;68.12
 ```
 
@@ -241,7 +241,7 @@ The same lines are also printed to stdout.
             └── adapter_cblas_fp64.cpp
 ```
 
-When `DISABLE_BLAS_REFERENCE=ON`, `adapter_cblas_fp64.cpp` and `validate.cpp` are still compiled and linked (they share cblas/lapacke symbols with PLASMA's BLAS dependency); only the runtime dispatch of the `reference` mode is skipped.
+When `DISABLE_BLAS_REFERENCE=ON`, `adapter_cblas_fp64.cpp` and `validate.cpp` are still compiled and linked (they share cblas/lapacke symbols with PLASMA's BLAS dependency); only the runtime dispatch of the `lapacke` mode is skipped.
 
 ## Contributing
 

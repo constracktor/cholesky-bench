@@ -13,17 +13,17 @@ namespace cpu
 /**
  * @brief Reference Cholesky variants.
  *
- *   - reference : threaded LAPACKE_dpotrf2 call
- *   - plasma    : plasma_dpotrf call (PLASMA's high-level
- *                 synchronous Cholesky over the OpenMP runtime).
+ *   - lapacke : threaded LAPACKE_dpotrf2 call
+ *   - plasma  : plasma_dpotrf call (PLASMA's high-level
+ *               synchronous Cholesky over the OpenMP runtime).
  */
-enum class Variant { reference, plasma };
+enum class Variant { lapacke, plasma };
 
 inline Variant to_variant(const std::string &s)
 {
-    if (s == "reference")
+    if (s == "lapacke")
     {
-        return Variant::reference;
+        return Variant::lapacke;
     }
     if (s == "plasma")
     {

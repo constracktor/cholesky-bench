@@ -14,7 +14,7 @@ void parallel_cholesky(Variant variant, std::vector<double> &matrix, int N)
 {
     switch (variant)
     {
-        case Variant::reference: lapacke_potrf(matrix, N); return;
+        case Variant::lapacke: lapacke_potrf(matrix, N); return;
 
         case Variant::plasma:
 #ifdef ENABLE_PLASMA

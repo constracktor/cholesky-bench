@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
             // Reference modes:
             std::vector<std::string> modes = {};
 #ifndef DISABLE_BLAS_REFERENCE
-            modes.push_back("reference");
+            modes.push_back("lapacke");
 #endif
 #ifdef ENABLE_PLASMA
             modes.push_back("plasma");
