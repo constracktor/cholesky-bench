@@ -26,9 +26,6 @@ if(ENABLE_VALIDATION AND DISABLE_COMPUTATION)
       "residual validation needs a real factorization to check against.")
 endif()
 
-# clang-format / cmake-format integration is hoisted to the top-level
-# CMakeLists.txt; configure from the repo root to use it.
-
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   # Our installs follow the standard GNU directory layout. This include needs to
   # come first since we need the CMAKE_INSTALL_* in the CMakeLists.txt of each

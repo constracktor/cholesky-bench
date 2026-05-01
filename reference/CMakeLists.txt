@@ -19,8 +19,6 @@ option(
   ENABLE_VALIDATION
   "Compute ||A - L*L^T||_F / ||A||_F after each factorization (off by default)"
   OFF)
-# clang-format / cmake-format integration is hoisted to the top-level
-# CMakeLists.txt; configure from the repo root to use it.
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(GNUInstallDirs)

@@ -1,6 +1,6 @@
 # Cholesky-Bench
 
-Cholesky-Bench benchmarks right-looking tiled Cholesky factorization from fork-join to asynchronous tasks across several parallelism models, currently comparing OpenMP and HPX implementations side by side. A non-tiled parallel-BLAS reference is also included as a baseline.
+Cholesky-Bench benchmarks right-looking tiled Cholesky factorization from fork-join to asynchronous tasks across several parallelism models, currently comparing OpenMP and HPX implementations side by side. A non-tiled parallel reference is also included as a baseline.
 
 ## Variants
 
@@ -160,19 +160,7 @@ runtimes_reference_cholesky_<suffix>.txt
 
 The suffix encodes which dimension is swept: `tile_` if tiles vary, `size_` if size varies, followed by the loop count. The file uses `;`-separated columns:
 
-```
-threads;problem_size;tile_size;n_tiles;for_collapse;for_naive;task_naive;task_depend
-128;65536;1024;64;3.14;3.21;2.98;2.87
-```
-
 The `reference/` binary reports a `lapacke` column (suppressed by `ENABLE_LAPACKE=OFF`) plus a `plasma` column when built with `ENABLE_PLASMA=ON`, with `tile_size = problem_size` and `n_tiles = 1`, so its runtime files merge cleanly with the tiled benchmarks on the `problem_size` key:
-
-```
-threads;problem_size;tile_size;n_tiles;lapacke;plasma
-128;65280;65280;1;5.21;68.12
-```
-
-The same lines are also printed to stdout.
 
 ## Repository structure
 
@@ -242,7 +230,7 @@ When `ENABLE_LAPACKE=OFF`, `adapter_cblas_fp64.cpp` and `validate.cpp` are still
 
 ## Formatting
 
-A repository-wide [`.clang-format`](.clang-format) governs all three subtrees. The top-level [`CMakeLists.txt`](CMakeLists.txt) wires up `clang-format` and `cmake-format` targets via [Format.cmake](https://github.com/TheLartians/Format.cmake); configure once from the repo root and use the targets:
+A repository-wide [`.clang-format`](.clang-format) governs all subtrees. The top-level [`CMakeLists.txt`](CMakeLists.txt) wires up `clang-format` and `cmake-format` targets via [Format.cmake](https://github.com/TheLartians/Format.cmake); configure once from the repo root and use the targets:
 
 ```bash
 cmake -B build-fmt
@@ -250,11 +238,11 @@ cmake --build build-fmt --target check-clang-format   # CI-style check
 cmake --build build-fmt --target fix-clang-format     # apply formatting
 ```
 
-Each subproject (`openmp/`, `hpx/`, `reference/`) is its own standalone CMake project with its own dependencies, so the top-level `CMakeLists.txt` only handles formatting — actual builds still happen from inside each subdirectory via its `compile.sh`.
+Each subproject (`openmp/`, `hpx/`, `reference/`) is its own standalone CMake project with its own dependencies, so the top-level `CMakeLists.txt` only handles formatting. The actual builds still happen from inside each subdirectory via its `compile.sh`.
 
 ## Contributing
 
-We would be happy to expand Cholesky-Bench to additional asynchronous many-task (AMT) runtimes. If you have an implementation you would like to add, feel free to open a pull request.
+We would be happy to expand Cholesky-Bench to additional asynchronous many-task (AMT) runtimes. If you would like to add an implementation, feel free to open a pull request.
 
 ## How to cite
 

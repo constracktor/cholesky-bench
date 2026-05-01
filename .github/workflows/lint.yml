@@ -20,10 +20,6 @@ jobs:
       run: pip3 install cmakelang
 
     - name: Configure top-level format project
-      # The repo-root CMakeLists.txt is a format-only coordinator that pulls
-      # in TheLartians/Format.cmake and exposes the *-clang-format and
-      # *-cmake-format targets. The actual builds live in openmp/, hpx/,
-      # and reference/ and are not configured here.
       run: cmake -B build-fmt -DCLANG_FORMAT_PROGRAM=$(which clang-format-18)
 
     - name: Check code formatting
