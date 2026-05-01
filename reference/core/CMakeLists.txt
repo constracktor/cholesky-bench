@@ -29,9 +29,8 @@ target_include_directories(
 # Link BLAS
 if(ENABLE_MKL)
   # Link threaded Intel oneMKL
-  target_link_libraries(
-    cholesky_core PUBLIC MKL::mkl_intel_lp64 MKL::mkl_core MKL::MKL
-                         MKL::mkl_intel_thread)
+  target_link_libraries(cholesky_core PUBLIC MKL::mkl_intel_lp64 MKL::mkl_core
+                                             MKL::MKL MKL::mkl_intel_thread)
 else()
   # Link threaded OpenBLAS
   target_link_libraries(cholesky_core PUBLIC ${OpenBLAS_LIB})

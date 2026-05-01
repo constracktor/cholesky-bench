@@ -19,21 +19,8 @@ option(
   ENABLE_VALIDATION
   "Compute ||A - L*L^T||_F / ||A||_F after each factorization (off by default)"
   OFF)
-option(ENABLE_FORMAT_TARGETS "Enable clang-format / cmake-format targets"
-       ${PROJECT_IS_TOP_LEVEL})
-
-if(ENABLE_FORMAT_TARGETS)
-  find_package(format QUIET)
-  if(NOT format_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-      format
-      GIT_REPOSITORY https://github.com/TheLartians/Format.cmake.git
-      GIT_TAG v1.8.1
-      QUIET)
-    FetchContent_MakeAvailable(format)
-  endif()
-endif()
+# clang-format / cmake-format integration is hoisted to the top-level
+# CMakeLists.txt; configure from the repo root to use it.
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(GNUInstallDirs)

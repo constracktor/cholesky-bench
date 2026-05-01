@@ -178,9 +178,10 @@ The same lines are also printed to stdout.
 
 ```
 .
+├── .clang-format           # repo-wide style; governs all three subtrees
+├── CMakeLists.txt          # top-level coordinator (formatting only; LANGUAGES NONE)
 ├── openmp/
 │   ├── CMakeLists.txt
-│   ├── CMakePresets.json
 │   ├── compile.sh          # build script (gcc or llvm)
 │   ├── run.sh              # SLURM job script
 │   ├── main.cpp
@@ -199,7 +200,6 @@ The same lines are also printed to stdout.
 │           └── adapter_cblas_fp64.cpp
 ├── hpx/
 │   ├── CMakeLists.txt
-│   ├── CMakePresets.json
 │   ├── compile.sh          # build script (gcc only)
 │   ├── run.sh              # SLURM job script
 │   ├── main.cpp
@@ -218,7 +218,6 @@ The same lines are also printed to stdout.
 │           └── adapter_cblas_fp64.cpp
 └── reference/
     ├── CMakeLists.txt
-    ├── CMakePresets.json
     ├── compile.sh          # build script (gcc only)
     ├── run.sh              # SLURM job script
     ├── main.cpp
@@ -240,6 +239,18 @@ The same lines are also printed to stdout.
 ```
 
 When `ENABLE_LAPACKE=OFF`, `adapter_cblas_fp64.cpp` and `validate.cpp` are still compiled and linked (they share cblas/lapacke symbols with PLASMA's BLAS dependency); only the runtime dispatch of the `lapacke` mode is skipped.
+
+## Formatting
+
+A repository-wide [`.clang-format`](.clang-format) governs all three subtrees. The top-level [`CMakeLists.txt`](CMakeLists.txt) wires up `clang-format` and `cmake-format` targets via [Format.cmake](https://github.com/TheLartians/Format.cmake); configure once from the repo root and use the targets:
+
+```bash
+cmake -B build-fmt
+cmake --build build-fmt --target check-clang-format   # CI-style check
+cmake --build build-fmt --target fix-clang-format     # apply formatting
+```
+
+Each subproject (`openmp/`, `hpx/`, `reference/`) is its own standalone CMake project with its own dependencies, so the top-level `CMakeLists.txt` only handles formatting — actual builds still happen from inside each subdirectory via its `compile.sh`.
 
 ## Contributing
 
