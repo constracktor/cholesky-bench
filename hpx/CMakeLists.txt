@@ -15,27 +15,11 @@ option(
   DISABLE_COMPUTATION
   "Replace all BLAS/LAPACK calls and tile generation with no-ops; keeps the dataflow graph intact so HPX scheduling overhead can be measured in isolation"
   OFF)
-option(ENABLE_FORMAT_TARGETS "Enable clang-format / cmake-format targets"
-       ${PROJECT_IS_TOP_LEVEL})
-
 if(ENABLE_VALIDATION AND DISABLE_COMPUTATION)
   message(
     FATAL_ERROR
       "ENABLE_VALIDATION and DISABLE_COMPUTATION are mutually exclusive: "
       "residual validation needs a real factorization to check against.")
-endif()
-
-if(ENABLE_FORMAT_TARGETS)
-  find_package(format QUIET)
-  if(NOT format_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-      format
-      GIT_REPOSITORY https://github.com/TheLartians/Format.cmake.git
-      GIT_TAG v1.8.1
-      QUIET)
-    FetchContent_MakeAvailable(format)
-  endif()
 endif()
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)

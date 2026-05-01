@@ -19,14 +19,14 @@ jobs:
     - name: Install cmakelang
       run: pip3 install cmakelang
 
-    - name: Configure dummy project
-      run: cd hpx && cmake -B build-fmt -DBUILD_CORE=OFF -DCLANG_FORMAT_PROGRAM=$(which clang-format-18)
+    - name: Configure top-level format project
+      run: cmake -B build-fmt -DCLANG_FORMAT_PROGRAM=$(which clang-format-18)
 
     - name: Check code formatting
       id: clangformat
       run: |
         set +e
-        cd hpx && cmake --build build-fmt --target check-clang-format
+        cmake --build build-fmt --target check-clang-format
         status=$?
         if [ $status -ne 0 ]; then
           echo "Formatting errors found!"
@@ -37,14 +37,14 @@ jobs:
         fi
 
     - name: Check CMake formatting
-      # Let's run the CMake formatting checks even if our code is mis-formatted.
+      # Run CMake formatting checks even if the C++ check failed.
       if: success() || steps.clangformat.conclusion == 'failure'
-      # Note that diff generation for cmake-format is somewhat broken in the upstream project.
-      # Diffs always end up with incorrect paths so manual fixes would be necessary, which we sidestep
-      # by re-formatting in-place and then using `git diff`.
+      # Diff generation for cmake-format is somewhat broken upstream (paths
+      # come out wrong), so we sidestep it by fixing in place and using
+      # `git diff` to produce the patch.
       run: |
         set +e
-        cd hpx && cmake --build build-fmt --target check-cmake-format
+        cmake --build build-fmt --target check-cmake-format
         status=$?
         if [ $status -ne 0 ]; then
           echo "Formatting errors found!"
@@ -61,5 +61,5 @@ jobs:
       with:
         name: Formatting fix .patch files
         path: |
-          hpx/clang-format.patch
-          hpx/cmake-format.patch
+          clang-format.patch
+          cmake-format.patch
